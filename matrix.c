@@ -3,10 +3,19 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #define N 4
 
-void multiplyMatrices(int** matrix1, int** matrix2, int** result) {
+void fillMatrix(int matrix[N][N]) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            matrix[i][j] = rand() % 10;
+        }
+    }
+}
+
+void multiplyMatrices(int matrix1[N][N], int matrix2[N][N], int result[N][N]) {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             result[i][j] = 0;
@@ -17,31 +26,40 @@ void multiplyMatrices(int** matrix1, int** matrix2, int** result) {
     }
 }
 
+void writeMatrixToFile(int matrix[N][N], const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        perror("Error opening file");
+        exit(1);
+    }
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            fprintf(file, "%d ", matrix[i][j]);
+        }
+        fprintf(file, "\n");
+    }
+
+    fclose(file);
+}
+
 int main() {
     // Create and fill the first matrix
-    int** matrix1 = (int**)malloc(N * sizeof(int*));
-    for (int i = 0; i < N; i++) {
-        matrix1[i] = (int*)malloc(N * sizeof(int));
-        for (int j = 0; j < N; j++) {
-            matrix1[i][j] = rand() % 10;
-        }
-    }
+    int matrix1[N][N];
+    fillMatrix(matrix1);
+    writeMatrixToFile(matrix1, "matrix1.txt");
 
     // Create and fill the second matrix
-    int** matrix2 = (int**)malloc(N * sizeof(int*));
-    for (int i = 0; i < N; i++) {
-        matrix2[i] = (int*)malloc(N * sizeof(int));
-        for (int j = 0; j < N; j++) {
-            matrix2[i][j] = rand() % 10;
-        }
-    }
+    int matrix2[N][N];
+    fillMatrix(matrix2);
+    writeMatrixToFile(matrix2, "matrix2.txt");
 
-    // Create a pipe array for communication
-    int pipes[N][2];
+    // Create pipe channels for communication
+    int channels[N][2];
 
     // Create child processes equal to the size of N
     for (int i = 0; i < N; i++) {
-        if (pipe(pipes[i]) == -1) {
+        if (pipe(channels[i]) == -1) {
             perror("Pipe creation failed");
             exit(1);
         }
@@ -52,66 +70,58 @@ int main() {
             perror("Fork failed");
             exit(1);
         } else if (pid == 0) { // Child process
-            close(pipes[i][0]); // Close the read end of the pipe
+            close(channels[i][0]); // Close the read end of the pipe
 
             // Redirect stdout to the write end of the pipe
-            dup2(pipes[i][1], 1);
+            dup2(channels[i][1], STDOUT_FILENO);
 
-            close(pipes[i][1]); // Close the write end of the pipe
+            close(channels[i][1]); // Close the write end of the pipe
 
-            // Execute the matrix multiplication command
-            execlp("paste", "paste", "-d", " ", "-", NULL);
+            // Output the row from matrix1 to the pipe
+            for (int j = 0; j < N; j++) {
+                printf("%d ", matrix1[i][j]);
+            }
 
             exit(0);
         }
     }
 
     // Parent process
-    int** result = (int**)malloc(N * sizeof(int*));
-    for (int i = 0; i < N; i++) {
-        result[i] = (int*)malloc(N * sizeof(int));
-    }
+    int result[N][N];
 
-    FILE* outputFile = fopen("output.txt", "w");
-    if (outputFile == NULL) {
-        perror("Error opening output file");
+    int resultFile = open("result.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (resultFile == -1) {
+        perror("Error opening result file");
         exit(1);
     }
 
     for (int i = 0; i < N; i++) {
         pid_t pid = wait(NULL); // Wait for child process to finish
 
-        int row[N];
+        int column[N];
 
-        // Read the row from the pipe
-        read(pipes[i][0], row, N * sizeof(int));
-
-        close(pipes[i][0]); // Close the read end of the pipe
-
+        // Read the column from the pipe
         for (int j = 0; j < N; j++) {
-            matrix2[j][i] = row[j]; // Fill the column of matrix2 with the received row
+            read(channels[j][0], &column[j], sizeof(int));
+        }
+
+        close(channels[i][0]); // Close the read end of the pipe
+
+        // Fill the column of matrix2 with the received column
+        for (int j = 0; j < N; j++) {
+            matrix2[j][i] = column[j];
         }
 
         multiplyMatrices(matrix1, matrix2, result);
 
         // Write the row of the result matrix to the output file
         for (int j = 0; j < N; j++) {
-            dprintf(fileno(outputFile), "%d ", result[i][j]);
+            dprintf(resultFile, "%d ", result[i][j]);
         }
-        dprintf(fileno(outputFile), "\n");
+        dprintf(resultFile, "\n");
     }
 
-    close(fileno(outputFile));
-
-    // Free allocated memory
-    for (int i = 0; i < N; i++) {
-        free(matrix1[i]);
-        free(matrix2[i]);
-        free(result[i]);
-    }
-    free(matrix1);
-    free(matrix2);
-    free(result);
+    close(resultFile);
 
     return 0;
 }
