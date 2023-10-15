@@ -47,12 +47,15 @@ int main() {
         } else if (pid == 0) { // Child process
             close(pipes[i][1]); // Close the write end of the pipe
 
+            // Redirect stdout to the write end of the pipe
+            dup2(pipes[i][1], STDOUT_FILENO);
+
             int row[N], col[N];
             read(pipes[i][0], row, N * sizeof(int));
             read(pipes[i][0], col, N * sizeof(int));
-
+        
             multiplyRowByColumn(row, col);
-
+        
             exit(0);
         } else { // Parent process
             close(pipes[i][0]); // Close the read end of the pipe
