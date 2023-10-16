@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -16,8 +17,6 @@ void multiplyRowByColumn(int row[N], int col[N]) {
 }
 
 void fillMatrixFile(const char* filename) {
-    srand(time(NULL)); // Seed the random number generator
-
     // Open the file for writing
     int fd = open(filename, O_WRONLY | O_CREAT, 0644);
 
@@ -36,6 +35,8 @@ void fillMatrixFile(const char* filename) {
 }
 
 int main() {
+    srand(time(NULL)); // Seed the random number generator
+
     fillMatrixFile("matrix1.txt");
     fillMatrixFile("matrix2.txt");
     
