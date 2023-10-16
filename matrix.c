@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 
 #define N 4
 
@@ -14,7 +15,30 @@ void multiplyRowByColumn(int row[N], int col[N]) {
     write(STDOUT_FILENO, &result, sizeof(int));
 }
 
+void fillMatrixFile(const char* filename) {
+    srand(time(NULL)); // Seed the random number generator
+
+    // Open the file for writing
+    int fd = open(filename, O_WRONLY | O_CREAT, 0644);
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            int num = rand() % 10; // Generate a random number between 0 and 9
+            char buffer[16];
+            int len = sprintf(buffer, "%d ", num);
+            write(fd, buffer, len);
+        }
+        write(fd, "\n", 1);
+    }
+
+    // Close the file
+    close(fd);
+}
+
 int main() {
+    fillMatrixFile("matrix1.txt");
+    fillMatrixFile("matrix2.txt");
+    
     int matrix1[N][N];
     int matrix2[N][N];
     int result[N][N];
