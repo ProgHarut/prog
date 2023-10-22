@@ -5,8 +5,14 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <signal.h>
 
 #define N 4
+
+void handle_sigchld(int sig) {
+    int status;
+    while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+}
 
 void multiplyRowByColumn(int row[N], int col[N]) {
     int result = 0;
@@ -35,6 +41,15 @@ void fillMatrixFile(const char* filename) {
 }
 
 int main() {
+    struct sigaction sa;
+    sa.sa_handler = &handle_sigchld;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+    if (sigaction(SIGCHLD, &sa, 0) == -1) {
+        perror("sigaction failed");
+        exit(1);
+    }
+    
     srand(time(NULL)); // Seed the random number generator
 
     fillMatrixFile("matrix1.txt");
