@@ -4,32 +4,35 @@
 #include <signal.h>
 #include <unistd.h>
 
-volatile sig_atomic_t running = 1;
-volatile int total_lines_written = 0;
+int total_lines_written = 0;
 
 void signal_handler(int signo) {
     if (signo == SIGINT) {
         printf("\nTotal lines written: %d\n", total_lines_written);
-        running = 0;
+        exit(0);
     }
 }
 
-void write_to_file(const char* filename, int N, const char* filler) {
+void write_to_file(const char* filename, int N, const char* filler, int* lines_written) {
     FILE* file = fopen(filename, "w");
     if (file == NULL) {
         perror("Error opening file");
         exit(1);
     }
 
-    for (int i = 0; i < N && running; i++) {
-        fputs(filler, file);
+    for (int i = 0; i < N; i++) {
+        if (write(fileno(file), filler, strlen(filler)) == -1) {
+            perror("Error writing to file");
+            exit(1);
+        }
+        
         fputs("\n", file);
-        total_lines_written++;
+        (*lines_written)++;
+        
         usleep(100000);  // Имитация записи строки в файл
     }
 
     fclose(file);
-    printf("Total lines written: %d\n", total_lines_written);
 }
 
 int main(int argc, char *argv[]) {
@@ -44,7 +47,9 @@ int main(int argc, char *argv[]) {
 
     signal(SIGINT, signal_handler);
 
-    write_to_file(filename, N, filler);
+    write_to_file(filename, N, filler, &total_lines_written);
+    
+    printf("Total lines written: %d\n", total_lines_written);
 
     return 0;
 }
