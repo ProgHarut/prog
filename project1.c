@@ -1,55 +1,45 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <signal.h>
-#include <unistd.h>
+#include <string.h>
 
-int total_lines_written = 0;
+int linesWritten = 0;
 
-void signal_handler(int signo) {
-    if (signo == SIGINT) {
-        printf("\nTotal lines written: %d\n", total_lines_written);
-        exit(0);
-    }
+void signalHandler(int signal) {
+    printf("Number of lines written: %d\n", linesWritten);
 }
 
-void write_to_file(const char* filename, int N, const char* filler, int* lines_written) {
-    FILE* file = fopen(filename, "w");
-    if (file == NULL) {
-        perror("Error opening file");
-        exit(1);
+void writeFile(const char* fileName, int numLines, const char* placeholder) {
+    FILE* filePointer = fopen(fileName, "w");
+
+    if (filePointer == NULL) {
+        printf("Failed to open the file\n");
+        exit(EXIT_FAILURE);
+    }
+   
+    signal(SIGINT, signalHandler);
+
+    for (int i = 0; i < numLines; i++) {
+        fprintf(filePointer, "%s\n", placeholder);
+        linesWritten++;
+
+        fflush(filePointer); // Очищает буфер после каждой операции записи. Должно гарантировать, что переполнения не будет, и данные попадут в файл немедленно
     }
 
-    for (int i = 0; i < N; i++) {
-        if (write(fileno(file), filler, strlen(filler)) == -1) {
-            perror("Error writing to file");
-            exit(1);
-        }
-        
-        fputs("\n", file);
-        (*lines_written)++;
-        
-        usleep(100000);  // Имитация записи строки в файл
-    }
-
-    fclose(file);
+    fclose(filePointer);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s <filename> <N> <filler>\n", argv[0]);
-        return 1;
+        printf("Usage: %s <file name> <number of lines> <placeholder string>\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
 
-    const char* filename = argv[1];
-    int N = atoi(argv[2]);
-    const char* filler = argv[3];
+    const char* fileName = argv[1];
+    int numLines = atoi(argv[2]);
+    const char* placeholder = argv[3];
 
-    signal(SIGINT, signal_handler);
-
-    write_to_file(filename, N, filler, &total_lines_written);
-    
-    printf("Total lines written: %d\n", total_lines_written);
+    writeFile(fileName, numLines, placeholder);
 
     return 0;
 }
