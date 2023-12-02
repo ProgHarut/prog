@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 int linesWritten = 0;
 
@@ -11,21 +13,31 @@ void signalHandler(int signal) {
 }
 
 void writeFile(const char* fileName, int numLines, const char* placeholder) {
-    FILE* filePointer = fopen(fileName, "w");
+    FILE* filePointer = fopen(fileName, "a+");
 
     if (filePointer == NULL) {
-        printf("Failed to open the file\n");
+        perror("Failed to open the file\n");
         exit(EXIT_FAILURE);
     }
-   
+
+    if (flock(fileno(filePointer), LOCK_EX) == -1) {
+        perror("Failed to lock file for exclusive use\n");
+        exit(EXIT_FAILURE);
+    }
+
     signal(SIGINT, signalHandler);
 
     for (int i = 0; i < numLines; i++) {
         fprintf(filePointer, "%s\n", placeholder);
         linesWritten++;
-
-        fflush(filePointer); // Очищает буфер после каждой операции записи. Должно гарантировать, что переполнения не будет, и данные попадут в файл немедленно
+       
+        fflush(filePointer);
         usleep(100000);
+    }
+
+    if (flock(fileno(filePointer), LOCK_UN) == -1) {
+        perror("Failed to unlock file\n");
+        exit(EXIT_FAILURE);
     }
 
     fclose(filePointer);
@@ -33,7 +45,7 @@ void writeFile(const char* fileName, int numLines, const char* placeholder) {
 
 int main(int argc, char* argv[]) {
     if (argc != 4) {
-        printf("Usage: %s <file name> <number of lines> <placeholder string>\n", argv[0]);
+        printf("Usage: %s <filename> <number of lines> <placeholder>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
