@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 #include <string.h>
 
@@ -24,6 +25,7 @@ void writeFile(const char* fileName, int numLines, const char* placeholder) {
         linesWritten++;
 
         fflush(filePointer); // Очищает буфер после каждой операции записи. Должно гарантировать, что переполнения не будет, и данные попадут в файл немедленно
+        usleep(100000);
     }
 
     fclose(filePointer);
