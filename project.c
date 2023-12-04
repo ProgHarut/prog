@@ -5,6 +5,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <ctype.h>
 
 int linesWritten = 0;
 
@@ -16,12 +17,12 @@ void writeFile(const char* fileName, int numLines, const char* placeholder) {
     FILE* filePointer = fopen(fileName, "a+");
 
     if (filePointer == NULL) {
-        perror("Failed to open the file\n");
+        printf("Failed to open the file\n");
         exit(EXIT_FAILURE);
     }
 
     if (flock(fileno(filePointer), LOCK_EX) == -1) {
-        perror("Failed to lock file for exclusive use\n");
+        printf("Failed to lock file for exclusive use\n");
         exit(EXIT_FAILURE);
     }
 
@@ -36,7 +37,7 @@ void writeFile(const char* fileName, int numLines, const char* placeholder) {
     }
 
     if (flock(fileno(filePointer), LOCK_UN) == -1) {
-        perror("Failed to unlock file\n");
+        printf("Failed to unlock file\n");
         exit(EXIT_FAILURE);
     }
 
@@ -50,10 +51,27 @@ int main(int argc, char* argv[]) {
     }
 
     const char* fileName = argv[1];
+    if (strstr(fileName, ".txt") == NULL) {
+        printf("The provided file must be ended with .txt\n");
+        exit(EXIT_FAILURE);
+    }
+   
     int numLines = atoi(argv[2]);
-    const char* placeholder = argv[3];
+    if (numLines <= 0) {
+        printf("The number of lines must be a positive integer\n");
+        exit(EXIT_FAILURE);
+    }
+   
+    char* placeholder = argv[3];
+    while (*placeholder) {
+        if (!isalnum(*placeholder) && !isspace(*placeholder)) {
+            printf("The placeholder must consist of letters and numbers\n");
+            exit(EXIT_FAILURE);
+      }
+        placeholder++;
+    }
 
-    writeFile(fileName, numLines, placeholder);
+    writeFile(fileName, numLines, argv[3]);
 
     return 0;
 }
