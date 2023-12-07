@@ -4,8 +4,10 @@
 #include <signal.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/file.h>
 #include <ctype.h>
+#include <sys/file.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 int linesWritten = 0;
 
@@ -14,34 +16,35 @@ void signalHandler(int signal) {
 }
 
 void writeFile(const char* fileName, int numLines, const char* placeholder) {
-    FILE* filePointer = fopen(fileName, "a+");
+    int fd = open(fileName, O_CREAT | O_WRONLY, 0666);
 
-    if (filePointer == NULL) {
+    if (fd == -1) {
         printf("Failed to open the file\n");
         exit(EXIT_FAILURE);
     }
 
-    if (flock(fileno(filePointer), LOCK_EX) == -1) {
+    if (flock(fd, LOCK_EX) == -1) {
         printf("Failed to lock file for exclusive use\n");
         exit(EXIT_FAILURE);
     }
 
     signal(SIGINT, signalHandler);
 
+    //lseek(fd, 0, SEEK_END);
+
     for (int i = 0; i < numLines; i++) {
-        fprintf(filePointer, "%s\n", placeholder);
+        dprintf(fd, "%s\n", placeholder);
         linesWritten++;
        
-        fflush(filePointer);
         usleep(100000);
     }
 
-    if (flock(fileno(filePointer), LOCK_UN) == -1) {
+    if (flock(fd, LOCK_UN) == -1) {
         printf("Failed to unlock file\n");
         exit(EXIT_FAILURE);
     }
 
-    fclose(filePointer);
+    close(fd);
 }
 
 int main(int argc, char* argv[]) {
