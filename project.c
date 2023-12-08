@@ -28,12 +28,12 @@ void writeFile(const char* fileName, int numLines, const char* placeholder) {
         exit(EXIT_FAILURE);
     }
 
-    signal(SIGINT, signalHandler);
-
     if (ftruncate(fd, 0) == -1) {
         printf("Failed to truncate the file\n");
         exit(EXIT_FAILURE);
     }
+
+    signal(SIGINT, signalHandler);
 
     for (int i = 0; i < numLines; i++) {
         dprintf(fd, "%s\n", placeholder);
