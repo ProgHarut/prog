@@ -16,7 +16,7 @@ void signalHandler(int signal) {
 }
 
 void writeFile(const char* fileName, int numLines, const char* placeholder) {
-    int fd = open(fileName, O_CREAT | O_WRONLY, 0666);
+    int fd = open(fileName, O_CREAT | O_WRONLY | O_TRUNC, 0666);
 
     if (fd == -1) {
         printf("Failed to open the file\n");
