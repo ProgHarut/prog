@@ -12,7 +12,8 @@
 int linesWritten = 0;
 
 void signalHandler(int signal) {
-    printf("Number of lines written: %d\n", linesWritten);
+    printf("\b\bNumber of lines written: %d\n", linesWritten);
+    fflush(stdout);
 }
 
 void writeFile(const char* fileName, int numLines, const char* placeholder) {
