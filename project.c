@@ -30,7 +30,10 @@ void writeFile(const char* fileName, int numLines, const char* placeholder) {
 
     signal(SIGINT, signalHandler);
 
-    lseek(fd, 0, SEEK_END);
+    if (ftruncate(fd, 0) == -1) {
+        printf("Failed to truncate the file\n");
+        exit(EXIT_FAILURE);
+    }
 
     for (int i = 0; i < numLines; i++) {
         dprintf(fd, "%s\n", placeholder);
