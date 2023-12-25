@@ -69,16 +69,9 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
    
-    char* placeholder = argv[3];
-    while (*placeholder) {
-        if (!isalnum(*placeholder) && !isspace(*placeholder)) {
-            printf("The placeholder must consist of letters and numbers\n");
-            exit(EXIT_FAILURE);
-      }
-        placeholder++;
-    }
+    const char* placeholder = argv[3];
 
-    writeFile(fileName, numLines, argv[3]);
+    writeFile(fileName, numLines, placeholder);
 
     return 0;
 }
